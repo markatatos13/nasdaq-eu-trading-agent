@@ -1,17 +1,25 @@
 import yfinance as yf
-import requests
 import time
 import os
+import smtplib
+from email.mime.text import MIMEText
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASS = os.getenv("EMAIL_PASS")
+EMAIL_TO = os.getenv("EMAIL_TO")
 
 WATCHLIST = ["AAPL", "MSFT", "NVDA", "AMZN", "META", "ASML", "SAP.DE"]
 
-def send_telegram(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    data = {"chat_id": CHAT_ID, "text": message}
-    requests.post(url, data=data)
+def send_email(subject, body):
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = EMAIL_USER
+    msg["To"] = EMAIL_TO
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(EMAIL_USER, EMAIL_PASS)
+        server.send_message(msg)
 
 def check_market():
     for ticker in WATCHLIST:
@@ -21,10 +29,11 @@ def check_market():
             latest = data["Close"].iloc[-1]
             prev = data["Close"].iloc[0]
             change = ((latest - prev) / prev) * 100
-            
+
             if abs(change) > 2:
-                signal = f"{ticker} moved {round(change,2)}% today. Current price: {round(latest,2)}"
-                send_telegram(signal)
+                subject = f"ALERT: {ticker} moved {round(change,2)}%"
+                body = f"{ticker} moved {round(change,2)}% today.\nCurrent price: {round(latest,2)}"
+                send_email(subject, body)
 
 while True:
     check_market()
