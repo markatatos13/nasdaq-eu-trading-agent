@@ -1,3 +1,5 @@
+print("BOT STARTED")
+
 import yfinance as yf
 import time
 import os
